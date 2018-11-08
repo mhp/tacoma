@@ -11,7 +11,7 @@ import (
 
 type InputHandler struct {
 	Name string
-	Pin  Pin
+	Pin  InputPin
 	Cfg  Input
 }
 
@@ -56,7 +56,7 @@ func (h InputHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 type OutputHandler struct {
 	Name string
-	Pin  Pin
+	Pin  OutputPin
 	Cfg  Output
 }
 

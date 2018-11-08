@@ -35,53 +35,73 @@ func main() {
 	}
 
 	// iterate over outputs, enabling pins and adding handlers
-	for name, op := range cfg.Outputs {
+	for name, cfg := range cfg.Outputs {
 		p, err := getPin(name)
 		if err != nil {
 			fmt.Println("Bad output", name, err)
 			os.Exit(1)
 		}
-		if err = p.SetOutput(); err != nil {
+
+		op, ok := p.(OutputPin)
+		if !ok {
+			fmt.Println("Pin can't be used as an output", name)
+			os.Exit(1)
+
+		} else if err = op.SetOutput(); err != nil {
 			fmt.Println("Bad output (can't set as output)", name, err)
 			os.Exit(1)
 		}
-		if op.Invert {
-			if err = p.SetActiveLow(); err != nil {
+
+		if cfg.Invert {
+			if dp, ok := p.(DigitalPin); !ok {
+				fmt.Println("Pin doesn't support inverted operation", name)
+				os.Exit(1)
+			} else if err = dp.SetActiveLow(); err != nil {
 				fmt.Println("Bad output (can't set active low)", name, err)
 				os.Exit(1)
 			}
 		}
-		myHandlers.Add(OutputHandler{Name: name, Pin: p, Cfg: op})
+		myHandlers.Add(OutputHandler{Name: name, Pin: op, Cfg: cfg})
 	}
 
 	// iterate over inputs, enabling pins, adding handlers, setting up triggers
-	for name, ip := range cfg.Inputs {
+	for name, cfg := range cfg.Inputs {
 		p, err := getPin(name)
 		if err != nil {
 			fmt.Println("Bad input", name, err)
 			os.Exit(1)
 		}
-		if err = p.SetInput(); err != nil {
+
+		ip, ok := p.(InputPin)
+		if !ok {
+			fmt.Println("Pin can't be used as an input", name)
+			os.Exit(1)
+
+		} else if err = ip.SetInput(); err != nil {
 			fmt.Println("Bad input (can't set as input)", name, err)
 			os.Exit(1)
 		}
-		if ip.Invert {
-			if err = p.SetActiveLow(); err != nil {
+
+		if cfg.Invert {
+			if dp, ok := p.(DigitalPin); !ok {
+				fmt.Println("Pin doesn't support inverted operation", name)
+				os.Exit(1)
+			} else if err = dp.SetActiveLow(); err != nil {
 				fmt.Println("Bad input (can't set active low)", name, err)
 				os.Exit(1)
 			}
 		}
-		if ip.Method == "" {
-			ip.Method = "PUT"
-		}
 
-		if ip.Payload == "" {
-			ip.Payload = "{{if .RisingEdge}}1{{else}}0{{end}}"
-		}
-		myHandlers.Add(InputHandler{Name: name, Pin: p, Cfg: ip})
-		if err := myTriggers.Add(p, ip.OnRising, ip.OnFalling, ip.Method, ip.Payload); err != nil {
-			fmt.Println("Bad input", name, err)
-			os.Exit(1)
+		myHandlers.Add(InputHandler{Name: name, Pin: ip, Cfg: cfg})
+
+		if cfg.OnRising != "" || cfg.OnFalling != "" {
+			if tp, ok := p.(TriggeringPin); !ok {
+				fmt.Println("Pin cannot be used for event triggers", name)
+				os.Exit(1)
+			} else if err := myTriggers.Add(tp, cfg.OnRising, cfg.OnFalling, cfg.Method, cfg.Payload); err != nil {
+				fmt.Println("Bad input", name, err)
+				os.Exit(1)
+			}
 		}
 	}
 
@@ -93,15 +113,6 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-}
-
-type Pin interface {
-	SetInput() error
-	SetOutput() error
-	SetActiveLow() error
-
-	Write(bool) error
-	Read() (string, error)
 }
 
 func getPin(name string) (Pin, error) {

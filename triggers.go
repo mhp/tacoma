@@ -8,15 +8,13 @@ import (
 	"text/template"
 )
 
-type TriggerablePin interface {
-	GetEpollEvent(onRising, onFalling bool) (*syscall.EpollEvent, error)
-	IdentifyEdge(*syscall.EpollEvent) (rising, falling bool)
-}
+const DefaultMethod = "PUT"
+const DefaultTemplate = "{{if .RisingEdge}}1{{else}}0{{end}}"
 
 var Client http.Client
 
 type triggerInfo struct {
-	p         TriggerablePin
+	p         TriggeringPin
 	onRising  string
 	onFalling string
 	method    string
@@ -81,15 +79,13 @@ func NewTriggers() (*Triggers, error) {
 	return &Triggers{fd, make(map[int]triggerInfo)}, nil
 }
 
-func (t *Triggers) Add(p Pin, onRising string, onFalling string, method string, payload string) error {
-	if onRising == "" && onFalling == "" {
-		// No triggers required
-		return nil
+func (t *Triggers) Add(p TriggeringPin, onRising string, onFalling string, method string, payload string) error {
+	if method == "" {
+		method = DefaultMethod
 	}
 
-	tp, ok := p.(TriggerablePin)
-	if !ok {
-		return fmt.Errorf("pin cannot trigger events")
+	if payload == "" {
+		payload = DefaultTemplate
 	}
 
 	tpl, err := template.New("trigger").Parse(payload)
@@ -97,7 +93,7 @@ func (t *Triggers) Add(p Pin, onRising string, onFalling string, method string, 
 		return fmt.Errorf("cannot parse payload template: %v", err)
 	}
 
-	ev, err := tp.GetEpollEvent(onRising != "", onFalling != "")
+	ev, err := p.GetEpollEvent(onRising != "", onFalling != "")
 	if err != nil {
 		return fmt.Errorf("cannot configure pin: %v", err)
 	}
@@ -107,7 +103,7 @@ func (t *Triggers) Add(p Pin, onRising string, onFalling string, method string, 
 		return fmt.Errorf("epoll: %v", err)
 	}
 
-	t.pins[int(ev.Fd)] = triggerInfo{tp, onRising, onFalling, method, tpl}
+	t.pins[int(ev.Fd)] = triggerInfo{p, onRising, onFalling, method, tpl}
 
 	return nil
 }
