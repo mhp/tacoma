@@ -27,7 +27,7 @@ func (p *Pin) SetActiveLow() error {
 	return p.twiddleFlags(GPIOLINE_FLAG_ACTIVE_LOW, 0)
 }
 
-func (p *Pin) Write(v bool) error {
+func (p *Pin) WriteBool(v bool) error {
 	value := uint8(0)
 	if v {
 		value = 1
@@ -36,16 +36,16 @@ func (p *Pin) Write(v bool) error {
 	return WriteLine(p.fd, value)
 }
 
-func (p *Pin) Read() (string, error) {
+func (p *Pin) ReadBool() (bool, error) {
 	v, err := ReadLine(p.fd)
 	if err != nil {
-		return "n/a", nil
+		return false, err
 	}
 
 	if v != 0 {
-		return "1", nil
+		return true, nil
 	}
-	return "0", nil
+	return false, nil
 }
 
 func (p *Pin) GetEpollEvent(onRising, onFalling bool) (*syscall.EpollEvent, error) {

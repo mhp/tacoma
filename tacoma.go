@@ -53,7 +53,7 @@ func main() {
 		}
 
 		if cfg.Invert {
-			if dp, ok := p.(DigitalPin); !ok {
+			if dp, ok := p.(DigitalOutputPin); !ok {
 				fmt.Println("Pin doesn't support inverted operation", name)
 				os.Exit(1)
 			} else if err = dp.SetActiveLow(); err != nil {
@@ -61,7 +61,16 @@ func main() {
 				os.Exit(1)
 			}
 		}
-		myHandlers.Add(OutputHandler{Name: name, Pin: op, Cfg: cfg})
+
+
+		switch pin := p.(type) {
+		case GenericOutputPin:
+			myHandlers.Add(newOutputPinHandler(name, pin, cfg))
+		case DigitalOutputPin:
+			myHandlers.Add(newOutputPinHandler(name, WrapDigitalOutput(pin), cfg))
+		default:
+			fmt.Println("Can't handle pin type as output", pin)
+		}
 	}
 
 	// iterate over inputs, enabling pins, adding handlers, setting up triggers
@@ -83,7 +92,7 @@ func main() {
 		}
 
 		if cfg.Invert {
-			if dp, ok := p.(DigitalPin); !ok {
+			if dp, ok := p.(DigitalInputPin); !ok {
 				fmt.Println("Pin doesn't support inverted operation", name)
 				os.Exit(1)
 			} else if err = dp.SetActiveLow(); err != nil {
@@ -92,7 +101,6 @@ func main() {
 			}
 		}
 
-		myHandlers.Add(InputHandler{Name: name, Pin: ip, Cfg: cfg})
 
 		if cfg.OnRising != "" || cfg.OnFalling != "" {
 			if tp, ok := p.(TriggeringPin); !ok {
@@ -102,6 +110,15 @@ func main() {
 				fmt.Println("Bad input", name, err)
 				os.Exit(1)
 			}
+		}
+
+		switch pin := p.(type) {
+		case GenericInputPin:
+			myHandlers.Add(newInputPinHandler(name, pin, cfg))
+		case DigitalInputPin:
+			myHandlers.Add(newInputPinHandler(name, WrapDigitalInput(pin), cfg))
+		default:
+			fmt.Println("Can't handle pin type as input", pin)
 		}
 	}
 

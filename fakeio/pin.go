@@ -27,20 +27,16 @@ func (p *Pin) SetActiveLow() error {
 	return nil
 }
 
-func (p *Pin) Write(v bool) error {
+func (p *Pin) WriteBool(v bool) error {
 	fmt.Println(p.Name, "set output", v)
 	p.high = v
 	return nil
 }
 
-func (p *Pin) Read() (string, error) {
+func (p *Pin) ReadBool() (bool, error) {
 	fmt.Println(p.Name, "reading", p.high)
 
-	if p.high {
-		return "1", nil
-	}
-
-	return "0", nil
+	return p.high, nil
 }
 
 func (p *Pin) GetEpollEvent(r, f bool) (*syscall.EpollEvent, error) {

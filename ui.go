@@ -6,77 +6,59 @@ import (
 	"io/ioutil"
 	"net/http"
 	"sort"
-	"strings"
 )
 
-type InputHandler struct {
-	Name string
-	Pin  InputPin
-	Cfg  Input
+type ReadablePin interface {
+	Read() (string, error)
 }
 
-func (h InputHandler) Endpoint() string {
-	return h.Cfg.ExportAs
+type pinHandler struct {
+	name     string
+	endpoint string
+	inverted bool
+	input    bool
+
+	Pin ReadablePin
 }
 
-func (h InputHandler) Inverted() bool {
-	return h.Cfg.Invert
-}
-
-func (h InputHandler) Direction() string {
-	return "input"
-}
-
-func (h InputHandler) PinName() string {
-	return h.Name
-}
-
-func (h InputHandler) Value() string {
-	v, err := h.Pin.Read()
-	if err != nil {
-		return "?"
-	}
-	return v
-}
-
-func (h InputHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case "GET":
-		v, err := h.Pin.Read()
-		if err != nil {
-			http.Error(w, "Unable to read value", http.StatusInternalServerError)
-		} else {
-			fmt.Fprintf(w, "%v", v)
-		}
-
-	default:
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+func newInputPinHandler(name string, pin GenericInputPin, cfg Input) PinHandler {
+	return pinHandler{name: name,
+		endpoint: cfg.ExportAs,
+		inverted: cfg.Invert,
+		input:    true,
+		Pin:      pin,
 	}
 }
 
-type OutputHandler struct {
-	Name string
-	Pin  OutputPin
-	Cfg  Output
+func newOutputPinHandler(name string, pin GenericOutputPin, cfg Output) PinHandler {
+	return pinHandler{name: name,
+		endpoint: cfg.ExportAs,
+		inverted: cfg.Invert,
+		input:    false,
+		Pin:      pin,
+	}
 }
 
-func (h OutputHandler) Endpoint() string {
-	return h.Cfg.ExportAs
+func (h pinHandler) PinName() string {
+	return h.name
 }
 
-func (h OutputHandler) Inverted() bool {
-	return h.Cfg.Invert
+func (h pinHandler) Endpoint() string {
+	return h.endpoint
 }
 
-func (h OutputHandler) Direction() string {
+func (h pinHandler) Inverted() bool {
+	return h.inverted
+}
+
+func (h pinHandler) Direction() string {
+	if h.input {
+		return "input"
+	}
 	return "output"
 }
 
-func (h OutputHandler) PinName() string {
-	return h.Name
-}
-
-func (h OutputHandler) Value() string {
+func (h pinHandler) Value() string {
 	v, err := h.Pin.Read()
 	if err != nil {
 		return "?"
@@ -84,43 +66,36 @@ func (h OutputHandler) Value() string {
 	return v
 }
 
-func (h OutputHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case "GET":
+func (h pinHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
 		v, err := h.Pin.Read()
 		if err != nil {
 			http.Error(w, "Unable to read value", http.StatusInternalServerError)
 		} else {
 			fmt.Fprintf(w, "%v", v)
 		}
-
-	case "PUT":
+	} else if r.Method == "PUT" && !h.input {
 		if bbody, err := ioutil.ReadAll(r.Body); err != nil {
 			http.Error(w, "Unable to read PUT body", http.StatusInternalServerError)
 			return
 		} else {
 			body := string(bbody)
 
-			var v bool
-
-			switch {
-			case strings.HasPrefix(body, "false"),
-				strings.HasPrefix(body, "low"),
-				strings.HasPrefix(body, "0"):
-				v = false
-			default:
-				v = true
+			// Since h.input is false, we expect this to always succeed
+			op, ok := h.Pin.(GenericOutputPin)
+			if !ok {
+				http.Error(w, "Unable to get output pin", http.StatusInternalServerError)
+				return
 			}
 
-			if err := h.Pin.Write(v); err != nil {
+			if err := op.Write(body); err != nil {
 				http.Error(w, "Unable to write value", http.StatusInternalServerError)
 				return
 			} else {
 				w.WriteHeader(http.StatusOK)
 			}
 		}
-
-	default:
+	} else {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 }
