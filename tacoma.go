@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/mhp/tacoma/fakeio"
-	"github.com/mhp/tacoma/gpio"
 	"github.com/mhp/tacoma/gpiochip"
 )
 
@@ -145,10 +144,6 @@ func main() {
 func getPin(name string) (interface{}, error) {
 	if gpiochip.RecognisePin(name) {
 		return gpiochip.CreatePin(name)
-	}
-
-	if gpio.RecognisePin(name) {
-		return gpio.CreatePin(name)
 	}
 
 	if fakeio.RecognisePin(name) {
