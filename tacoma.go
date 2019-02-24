@@ -61,6 +61,20 @@ func main() {
 			}
 		}
 
+		if cfg.Pulse != "" {
+			if dp, ok := p.(DigitalOutputPin); !ok {
+				fmt.Println("Pin cannot be used for pulses", name)
+				os.Exit(1)
+			} else {
+				pp, err := NewPulsingOutput(dp, cfg.Pulse)
+				if err != nil {
+					fmt.Println("Cannot configure pulsing", err)
+					os.Exit(1)
+				}
+				p = pp
+			}
+		}
+
 		var ph PinHandler = nil
 		switch pin := p.(type) {
 		case GenericOutputPin:

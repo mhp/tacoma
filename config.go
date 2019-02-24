@@ -27,6 +27,7 @@ type Input struct {
 type Output struct {
 	ExportAs string
 	Invert   bool
+	Pulse    string
 }
 
 func loadConfig(file string) (ConfigFile, error) {
