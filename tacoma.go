@@ -62,14 +62,19 @@ func main() {
 			}
 		}
 
-
+		var ph PinHandler = nil
 		switch pin := p.(type) {
 		case GenericOutputPin:
-			myHandlers.Add(newOutputPinHandler(name, pin, cfg))
+			ph = newOutputPinHandler(name, pin, cfg)
 		case DigitalOutputPin:
-			myHandlers.Add(newOutputPinHandler(name, WrapDigitalOutput(pin), cfg))
+			ph = newOutputPinHandler(name, WrapDigitalOutput(pin), cfg)
 		default:
 			fmt.Println("Can't handle pin type as output", pin)
+		}
+
+		if ph != nil {
+			myHandlers.Add(ph)
+			myTriggers.AddContext(ph)
 		}
 	}
 
@@ -101,7 +106,6 @@ func main() {
 			}
 		}
 
-
 		if cfg.OnRising != "" || cfg.OnFalling != "" {
 			if tp, ok := p.(TriggeringPin); !ok {
 				fmt.Println("Pin cannot be used for event triggers", name)
@@ -112,13 +116,19 @@ func main() {
 			}
 		}
 
+		var ph PinHandler = nil
 		switch pin := p.(type) {
 		case GenericInputPin:
-			myHandlers.Add(newInputPinHandler(name, pin, cfg))
+			ph = newInputPinHandler(name, pin, cfg)
 		case DigitalInputPin:
-			myHandlers.Add(newInputPinHandler(name, WrapDigitalInput(pin), cfg))
+			ph = newInputPinHandler(name, WrapDigitalInput(pin), cfg)
 		default:
 			fmt.Println("Can't handle pin type as input", pin)
+		}
+
+		if ph != nil {
+			myHandlers.Add(ph)
+			myTriggers.AddContext(ph)
 		}
 	}
 
@@ -132,7 +142,7 @@ func main() {
 	}
 }
 
-func getPin(name string) (Pin, error) {
+func getPin(name string) (interface{}, error) {
 	if gpiochip.RecognisePin(name) {
 		return gpiochip.CreatePin(name)
 	}

@@ -4,9 +4,6 @@ import (
 	"syscall"
 )
 
-type Pin interface {
-}
-
 // InputPin defines the bare minimum for a pin - it can be configured as an Input
 type InputPin interface {
 	SetInput() error

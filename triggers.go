@@ -24,13 +24,19 @@ type triggerInfo struct {
 func (ti *triggerInfo) send(rising bool, url string) error {
 	var body strings.Builder
 
-	ti.tpl.Execute(&body, struct {
+	err := ti.tpl.Execute(&body, struct {
 		RisingEdge  bool
 		FallingEdge bool
+		Pin         PinMap
 	}{
 		RisingEdge:  rising,
 		FallingEdge: !rising,
+		Pin:         pinMap,
 	})
+
+	if err != nil {
+		return fmt.Errorf("Template execution failed: %v", err)
+	}
 
 	req, err := http.NewRequest(ti.method, url, strings.NewReader(body.String()))
 	if err != nil {
@@ -106,6 +112,22 @@ func (t *Triggers) Add(p TriggeringPin, onRising string, onFalling string, metho
 	t.pins[int(ev.Fd)] = triggerInfo{p, onRising, onFalling, method, tpl}
 
 	return nil
+}
+
+// pinMap is a map of pin value functions indexed by pin name
+// It can be used when evaluating templates so multiple pins
+// can be sampled as part of the same event.
+type PinMap map[string]fmt.Stringer
+
+var pinMap PinMap
+
+// AddContext adds the pin to the context used during template evaluation
+func (*Triggers) AddContext(p PinHandler) {
+	if pinMap == nil {
+		pinMap = make(PinMap)
+	}
+
+	pinMap[p.PinName()] = p
 }
 
 func (t *Triggers) Wait() {
