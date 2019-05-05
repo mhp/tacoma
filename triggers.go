@@ -127,7 +127,7 @@ func (*Triggers) AddContext(p PinHandler) {
 		pinMap = make(PinMap)
 	}
 
-	pinMap[p.PinName()] = p
+	pinMap[p.Endpoint()] = p
 }
 
 func (t *Triggers) Wait() {

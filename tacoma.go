@@ -35,7 +35,7 @@ func main() {
 
 	// iterate over outputs, enabling pins and adding handlers
 	for name, cfg := range cfg.Outputs {
-		p, err := getPin(name)
+		p, err := getPin(cfg.Pin)
 		if err != nil {
 			fmt.Println("Bad output", name, err)
 			os.Exit(1)
@@ -93,7 +93,7 @@ func main() {
 
 	// iterate over inputs, enabling pins, adding handlers, setting up triggers
 	for name, cfg := range cfg.Inputs {
-		p, err := getPin(name)
+		p, err := getPin(cfg.Pin)
 		if err != nil {
 			fmt.Println("Bad input", name, err)
 			os.Exit(1)

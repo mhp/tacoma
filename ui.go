@@ -3,6 +3,7 @@ package main
 import (
 	"html/template"
 	"net/http"
+	"path"
 	"sort"
 )
 
@@ -20,8 +21,8 @@ type Handlers struct {
 
 func (hs *Handlers) Add(p PinHandler) {
 	hs.Pins = append(hs.Pins, p)
-	if export := p.Endpoint(); export != "" {
-		http.Handle(export, p)
+	if export := p.Endpoint(); export != "" && p.Exported() {
+		http.Handle(path.Clean("/"+export), p)
 	}
 }
 
@@ -44,7 +45,7 @@ func (hs Handlers) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	<thead><tr><th>Endpoint</th><th>Pin</th><th>Direction</th><th>Value</th></tr></thead>
 	<tbody>{{ range .P }}
 	  <tr>
-	    <td>{{if gt (len .Endpoint) 0 }}{{.Endpoint}}{{else}}<i>Unexported</i>{{end}}</td>
+	    <td>{{.Endpoint}}{{if not .Exported}}<i> (Unexported)</i>{{end}}</td>
 	    <td>{{if .Inverted}}!{{end}}{{.PinName}}</td>
 	    <td>{{.Direction}}</td>
 	    <td>{{.String}}</td>

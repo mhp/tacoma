@@ -16,7 +16,8 @@ type ServerConfig struct {
 }
 
 type Input struct {
-	ExportAs  string
+	Pin       string
+	Hidden    bool
 	Invert    bool
 	OnRising  string
 	OnFalling string
@@ -25,9 +26,10 @@ type Input struct {
 }
 
 type Output struct {
-	ExportAs string
-	Invert   bool
-	Pulse    string
+	Pin    string
+	Hidden bool
+	Invert bool
+	Pulse  string
 }
 
 func loadConfig(file string) (ConfigFile, error) {

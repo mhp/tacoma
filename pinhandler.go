@@ -12,6 +12,7 @@ import (
 type PinHandler interface {
 	Endpoint() string
 	PinName() string
+	Exported() bool
 	Direction() string
 	Inverted() bool
 	String() string
@@ -28,14 +29,16 @@ type readablePin interface {
 type pinHandler struct {
 	name     string
 	endpoint string
+	exported bool
 	inverted bool
 	input    bool
 	pin      readablePin
 }
 
 func newInputPinHandler(name string, pin GenericInputPin, cfg Input) PinHandler {
-	return pinHandler{name: name,
-		endpoint: cfg.ExportAs,
+	return pinHandler{name: cfg.Pin,
+		endpoint: name,
+		exported: !cfg.Hidden,
 		inverted: cfg.Invert,
 		input:    true,
 		pin:      pin,
@@ -43,8 +46,9 @@ func newInputPinHandler(name string, pin GenericInputPin, cfg Input) PinHandler 
 }
 
 func newOutputPinHandler(name string, pin GenericOutputPin, cfg Output) PinHandler {
-	return pinHandler{name: name,
-		endpoint: cfg.ExportAs,
+	return pinHandler{name: cfg.Pin,
+		endpoint: name,
+		exported: !cfg.Hidden,
 		inverted: cfg.Invert,
 		input:    false,
 		pin:      pin,
@@ -57,6 +61,10 @@ func (h pinHandler) PinName() string {
 
 func (h pinHandler) Endpoint() string {
 	return h.endpoint
+}
+
+func (h pinHandler) Exported() bool {
+	return h.exported
 }
 
 func (h pinHandler) Inverted() bool {
