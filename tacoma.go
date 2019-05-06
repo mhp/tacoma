@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/mhp/tacoma/ads1015"
 	"github.com/mhp/tacoma/fakeio"
 	"github.com/mhp/tacoma/gpiochip"
 )
@@ -135,6 +136,8 @@ func main() {
 			ph = newInputPinHandler(name, pin, cfg)
 		case DigitalInputPin:
 			ph = newInputPinHandler(name, WrapDigitalInput(pin), cfg)
+		case AnalogueInputPin:
+			ph = newInputPinHandler(name, WrapAnalogueInput(pin), cfg)
 		default:
 			fmt.Println("Can't handle pin type as input", pin)
 		}
@@ -158,6 +161,10 @@ func main() {
 func getPin(name string) (interface{}, error) {
 	if gpiochip.RecognisePin(name) {
 		return gpiochip.CreatePin(name)
+	}
+
+	if ads1015.RecognisePin(name) {
+		return ads1015.CreatePin(name)
 	}
 
 	if fakeio.RecognisePin(name) {

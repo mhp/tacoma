@@ -27,6 +27,13 @@ type DigitalOutputPin interface {
 	WriteBool(bool) error
 }
 
+// AnalogueInputPin defines what an analogue pin can do
+type AnalogueInputPin interface {
+	MinValue() int
+	MaxValue() int
+	ReadValue() (int, error)
+}
+
 // GenericInputPin allows a string to be read as its value
 type GenericInputPin interface {
 	Read() (string, error)
