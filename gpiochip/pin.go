@@ -12,19 +12,20 @@ type Pin struct {
 	chip         int
 	offset       int
 	fd           int
+	flags        uint32
 	lastEdgeTime time.Time
 }
 
 func (p *Pin) SetInput() error {
-	return p.twiddleFlags(0, GPIOLINE_FLAG_IS_OUT)
+	return p.twiddleFlags(GPIOHANDLE_REQUEST_INPUT, GPIOHANDLE_REQUEST_OUTPUT)
 }
 
 func (p *Pin) SetOutput() error {
-	return p.twiddleFlags(GPIOLINE_FLAG_IS_OUT, 0)
+	return p.twiddleFlags(GPIOHANDLE_REQUEST_OUTPUT, GPIOHANDLE_REQUEST_INPUT)
 }
 
 func (p *Pin) SetActiveLow() error {
-	return p.twiddleFlags(GPIOLINE_FLAG_ACTIVE_LOW, 0)
+	return p.twiddleFlags(GPIOHANDLE_REQUEST_ACTIVE_LOW, 0)
 }
 
 func (p *Pin) WriteBool(v bool) error {
@@ -54,11 +55,6 @@ func (p *Pin) GetEpollEvent(onRising, onFalling bool) (*syscall.EpollEvent, erro
 		return nil, err
 	}
 
-	flags, _, _, err := GetLineInfo(cfd, p.offset)
-	if err != nil {
-		return nil, err
-	}
-
 	events := uint32(0)
 	if onRising {
 		events |= GPIOEVENT_REQUEST_RISING_EDGE
@@ -71,7 +67,7 @@ func (p *Pin) GetEpollEvent(onRising, onFalling bool) (*syscall.EpollEvent, erro
 		syscall.Close(p.fd)
 	}
 
-	p.fd, err = GetLineEventFd(cfd, p.offset, flags, events)
+	p.fd, err = GetLineEventFd(cfd, p.offset, p.flags, events)
 	if err != nil {
 		return nil, err
 	}
@@ -107,19 +103,14 @@ func (p *Pin) twiddleFlags(set, clear uint32) error {
 		return err
 	}
 
-	flags, _, _, err := GetLineInfo(cfd, p.offset)
-	if err != nil {
-		return err
-	}
-
-	flags = flags &^ clear
-	flags = flags | set
+	p.flags = p.flags &^ clear
+	p.flags = p.flags | set
 
 	if p.fd >= 0 {
 		syscall.Close(p.fd)
 	}
 
-	p.fd, err = GetLineFd(cfd, p.offset, flags)
+	p.fd, err = GetLineFd(cfd, p.offset, p.flags)
 	if err != nil {
 		return err
 	}
@@ -173,17 +164,12 @@ func CreatePin(name string) (*Pin, error) {
 			return nil, fmt.Errorf("Can't get fd for pin %v: %v", name, err)
 		}
 
-		flags, _, _, err := GetLineInfo(cfd, int(offset))
-		if err != nil {
-			return nil, fmt.Errorf("Can't get current flags for pin %v: %v", name, err)
-		}
-
-		pfd, err := GetLineFd(cfd, int(offset), flags)
+		pfd, err := GetLineFd(cfd, int(offset), 0)
 		if err != nil {
 			return nil, fmt.Errorf("Can't get line fd for pin %v: %v", name, err)
 		}
 
-		p := &Pin{chip: int(chip), offset: int(offset), fd: pfd}
+		p := &Pin{chip: int(chip), offset: int(offset), fd: pfd, flags: 0}
 		return p, nil
 	}
 
