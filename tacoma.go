@@ -148,6 +148,10 @@ func main() {
 		}
 	}
 
+	if cfg.ClientConfig.UseMDNS {
+		InsertMdnsShim()
+	}
+
 	go myTriggers.Wait()
 
 	http.Handle("/", myHandlers)

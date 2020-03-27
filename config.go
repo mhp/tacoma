@@ -7,12 +7,17 @@ import (
 
 type ConfigFile struct {
 	ServerConfig ServerConfig
+	ClientConfig ClientConfig
 	Inputs       map[string]Input
 	Outputs      map[string]Output
 }
 
 type ServerConfig struct {
 	ListenAddress string
+}
+
+type ClientConfig struct {
+	UseMDNS bool
 }
 
 type Input struct {
