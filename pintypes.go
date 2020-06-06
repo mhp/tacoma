@@ -2,6 +2,7 @@ package main
 
 import (
 	"syscall"
+	"time"
 )
 
 // InputPin defines the bare minimum for a pin - it can be configured as an Input
@@ -17,6 +18,7 @@ type OutputPin interface {
 // DigitalInputPin defines the additional functionality of a digital input
 type DigitalInputPin interface {
 	SetActiveLow() error
+	SetDebounce(time.Duration) error
 	ReadBool() (bool, error)
 }
 

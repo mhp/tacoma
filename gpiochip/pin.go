@@ -14,6 +14,7 @@ type Pin struct {
 	fd           int
 	flags        uint32
 	lastEdgeTime time.Time
+	debounce     time.Duration
 }
 
 func (p *Pin) SetInput() error {
@@ -26,6 +27,17 @@ func (p *Pin) SetOutput() error {
 
 func (p *Pin) SetActiveLow() error {
 	return p.twiddleFlags(GPIOHANDLE_REQUEST_ACTIVE_LOW, 0)
+}
+
+const minDebounceDuration = 20 * time.Millisecond
+
+func (p *Pin) SetDebounce(d time.Duration) error {
+	if d < minDebounceDuration {
+		return fmt.Errorf("Debounce duration too short (%v<%v)", d, minDebounceDuration)
+	}
+
+	p.debounce = d
+	return nil
 }
 
 func (p *Pin) WriteBool(v bool) error {
@@ -82,7 +94,7 @@ func (p *Pin) IdentifyEdge(ev *syscall.EpollEvent) (r, f bool) {
 	}
 
 	ts := time.Unix(0, int64(ts_ns))
-	if ts.Sub(p.lastEdgeTime) < 20*time.Millisecond {
+	if ts.Sub(p.lastEdgeTime) < p.debounce {
 		return false, false
 	}
 
@@ -169,7 +181,7 @@ func CreatePin(name string) (*Pin, error) {
 			return nil, fmt.Errorf("Can't get line fd for pin %v: %v", name, err)
 		}
 
-		p := &Pin{chip: int(chip), offset: int(offset), fd: pfd, flags: 0}
+		p := &Pin{chip: int(chip), offset: int(offset), fd: pfd, flags: 0, debounce: minDebounceDuration}
 		return p, nil
 	}
 

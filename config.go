@@ -28,6 +28,7 @@ type Input struct {
 	OnFalling string
 	Method    string
 	Payload   string
+	Debounce  string
 }
 
 type Output struct {

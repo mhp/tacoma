@@ -27,6 +27,11 @@ func (p *Pin) SetActiveLow() error {
 	return nil
 }
 
+func (p *Pin) SetDebounce(d time.Duration) error {
+	fmt.Println(p.Name, "set debounce to", d)
+	return nil
+}
+
 func (p *Pin) WriteBool(v bool) error {
 	fmt.Println(p.Name, "set output", v)
 	p.high = v

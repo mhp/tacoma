@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/mhp/tacoma/ads1015"
 	"github.com/mhp/tacoma/fakeio"
@@ -126,6 +127,22 @@ func main() {
 				os.Exit(1)
 			} else if err := myTriggers.Add(tp, cfg.OnRising, cfg.OnFalling, cfg.Method, cfg.Payload); err != nil {
 				fmt.Println("Bad input", name, err)
+				os.Exit(1)
+			}
+		}
+
+		if cfg.Debounce != "" {
+			debounce, err := time.ParseDuration(cfg.Debounce)
+			if err != nil {
+				fmt.Println("Can't parse debounce duration for", name)
+				os.Exit(1)
+			}
+
+			if dp, ok := p.(DigitalInputPin); !ok {
+				fmt.Println("Pin doesn't support debouncing", name)
+				os.Exit(1)
+			} else if err = dp.SetDebounce(debounce); err != nil {
+				fmt.Println("Bad input (can't set active low)", name, err)
 				os.Exit(1)
 			}
 		}
