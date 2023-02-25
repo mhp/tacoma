@@ -47,6 +47,7 @@ func (ti *triggerInfo) send(rising bool, url string) error {
 	if err != nil {
 		return fmt.Errorf("Can't do HTTP request: %v", err)
 	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("HTTP request failed: %v", resp.Status)
